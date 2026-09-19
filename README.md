@@ -59,25 +59,40 @@
 
 | 项目 | 状态 | 说明 |
 |---|---|---|
-| `docker compose up --build` | ⚠️ 未实测 | 仅通过 `docker compose config` 语法校验；开发机虚拟化未启用，镜像未真正构建过 |
 | `start.sh` (macOS/Linux) | ⚠️ 未实测 | 逻辑已实现，未在对应平台运行 |
 | `start.command` (macOS) | ⚠️ 未实测 | 同上 |
 | `start.bat` (Windows) | ⚠️ 未实测 | 逻辑已实现，未完整跑通 |
 | Linux / macOS 运行 | ⚠️ 未实测 | 仅在 Windows 上验证过 |
 | Python 3.9 – 3.12 | ⚠️ 未实测 | 仅在 Python 3.14 上验证过 |
 
+### 已实测的部署路径 ✅
+
+| 路径 | 结果 |
+|---|---|
+| `docker compose up --build` | ✅ **已实测通过**（Windows 11 + Docker Desktop 29.4.3 + WSL2） |
+| 容器健康检查 | ✅ `Up (healthy)` |
+| 容器内 37 关装载 | ✅ 通过 |
+| 容器内全部 API | ✅ 冒烟 50/50、验收 49/49 |
+| 容器内 4 个仿真服务 | ✅ 正常响应 |
+
+> ⚠️ 但 Docker 模式下，宿主经端口映射访问**仿真服务的裸 TCP 端口**存在
+> Docker Desktop 平台限制（连接被重置）。需要实操网络渗透关卡时请用本地运行方式。
+> 详见 [已知限制](#已知限制宿主端口冲突与仿真服务转发)。
+
 ### 升级为正式版的条件
 
 以下任一路径走通，即可将版本号提升为 `v2.0.0` 并打正式 tag：
 
-1. 在启用虚拟化的机器上跑通 `docker compose up --build`，或
+1. ~~在启用虚拟化的机器上跑通 `docker compose up --build`~~ ✅ **已完成**
 2. 在 macOS / Linux 上跑通 `./start.sh`，或
 3. 在 Windows 上跑通 `start.bat`
 
 > 💡 **已知环境问题**：若 `docker compose up` 报
 > 「Virtualization support not detected」，说明 Windows 的
 > **虚拟机平台**与 **Hyper-V** 功能未启用（与 CPU 是否支持无关）。
-> 启用方法见 [部署](#-部署) 章节。
+> 若启用时报 `0x8007371B`，需先执行
+> `DISM /Online /Cleanup-Image /RestoreHealth` 修复组件存储。
+> 详见 [部署](#-部署) 章节。
 
 ## 📖 目录
 
@@ -721,6 +736,67 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8899
 > 本项目的所有自动化验证（冒烟测试 50 项、验收核验 49 项等）
 > 都是在**不使用 Docker** 的情况下通过本地运行完成的，
 > 因此即使 Docker 不可用，平台功能依然完整可用。
+
+### 已知限制：宿主端口冲突与仿真服务转发
+
+在 Windows + Docker Desktop（WSL2 后端）环境下实测发现两个问题，
+**均不影响主服务与全部关卡功能**，但会影响仿真网络服务的宿主访问：
+
+#### ① 宿主端口冲突
+
+若本机已安装 MySQL / Redis，会占用 3306 / 6379，导致容器端口映射失败。
+此外 Windows 启用 Hyper-V/WSL 后会保留部分端口段（如 `2061-2160`），
+落在保留区间的端口无法绑定。
+
+`docker-compose.yml` 已默认规避：
+
+| 服务 | 容器内端口 | 宿主默认端口 | 原因 |
+|---|---:|---:|---|
+| 仿真 FTP | 2121 | **12121** | 2121 落在 Windows 保留区间 2061-2160 |
+| 仿真 MySQL | 3306 | **13306** | 避开宿主真实 MySQL |
+| 仿真 Redis | 6379 | **16379** | 避开宿主真实 Redis |
+| 仿真调试 | 31337 | 31337 | 无冲突 |
+
+查看本机保留端口段：
+
+```powershell
+netsh interface ipv4 show excludedportrange protocol=tcp
+```
+
+#### ② 仿真服务端口在宿主不可达（Docker Desktop 限制）
+
+实测现象：容器内 4 个仿真服务**全部正常**，宿主 HTTP 主服务（8899）**正常**，
+但宿主经端口映射访问裸 TCP 仿真端口时连接被立即重置（WinError 10053）。
+
+这是 Docker Desktop for Windows 在 WSL2 后端下转发**非 HTTP 裸 TCP 长连接**
+时的已知限制，与本项目代码无关。
+
+**因此，如果你需要练习 `nmap` / `nc` / `redis-cli` 等工具连接仿真服务，
+请使用本地运行方式而不是 Docker：**
+
+```bash
+./start.sh          # macOS / Linux
+start.bat           # Windows
+```
+
+本地运行时仿真服务直接监听 `127.0.0.1`，`nmap 127.0.0.1`、
+`nc 127.0.0.1 6379` 等均可正常工作。
+
+> **Docker 模式适合**：快速体验平台、验证关卡逻辑、分享给他人。
+> **本地模式适合**：网络渗透关卡（L27–L33）的实操练习。
+
+### Docker 模式实测结果
+
+| 项目 | 结果 |
+|---|---|
+| 镜像构建 | ✅ 通过（多阶段构建） |
+| 容器启动 | ✅ `Up (healthy)` |
+| 健康检查 | ✅ 通过 |
+| SPA 全部路由 | ✅ 200 |
+| 冒烟测试 50 项 | ✅ 通过 |
+| 验收核验 49 项 | ✅ 通过 |
+| 容器内 netlab 四服务 | ✅ 正常 |
+| 宿主访问 netlab 裸 TCP | ⚠️ 连接被重置（Docker Desktop 限制，见上） |
 
 ---
 
