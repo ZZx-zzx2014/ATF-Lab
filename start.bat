@@ -1,27 +1,29 @@
 @echo off
 REM ============================================================
-REM ATF Lab - ä¸€é”®å¯åŠ¨è„šæœ¬ï¼ˆWindowsï¼‰
+REM ATF Lab - Ò»¼üÆô¶¯½Å±¾£¨Windows£©
 REM
-REM  ä»…ä¾›æ•™å­¦æ¼”ç¤ºï¼ˆEDUCATIONAL USE ONLYï¼‰
-REM  è¯·å‹¿åœ¨äº’è”ç½‘ä¸Šå…¬å¼€å‘å¸ƒã€éƒ¨ç½²æˆ–ä¼ æ’­ã€‚
+REM  ½ö¹©½ÌÑ§ÑİÊ¾£¨EDUCATIONAL USE ONLY£©
+REM  ÇëÎğÔÚ»¥ÁªÍøÉÏ¹«¿ª·¢²¼¡¢²¿Êğ»ò´«²¥¡£
 REM
-REM ç”¨æ³•ï¼š
-REM   start.bat            å¯åŠ¨æœåŠ¡
-REM   start.bat --rebuild  å¼ºåˆ¶é‡å»ºå‰ç«¯åå¯åŠ¨
-REM   start.bat --docker   ä½¿ç”¨ docker compose å¯åŠ¨
+REM ÓÃ·¨£º
+REM   start.bat            Æô¶¯·şÎñ
+REM   start.bat --rebuild  Ç¿ÖÆÖØ½¨Ç°¶ËºóÆô¶¯
+REM   start.bat --docker   Ê¹ÓÃ docker compose Æô¶¯
 REM
-REM å®ç°è¯´æ˜ï¼š
-REM   æœ¬è„šæœ¬åˆ»æ„é¿å…ä½¿ç”¨ if ( ... ) else ( ... ) è¿™ç±»åµŒå¥—å—ã€‚
-REM   cmd å¯¹å—å†…çš„ç‰¹æ®Šå­—ç¬¦ï¼ˆæ‹¬å· && | ç­‰ï¼‰è§£æè§„åˆ™å¤æ‚ä¸”å®¹æ˜“å‡ºé”™ï¼Œ
-REM   å› æ­¤ç»Ÿä¸€æ”¹ç”¨ goto æ ‡ç­¾è·³è½¬ï¼Œè¡Œä¸ºå¯é¢„æµ‹ã€‚
+REM ÊµÏÖËµÃ÷£¨Á½¸ö Windows Åú´¦ÀíµÄ¿Ó£©£º
+REM   1. ±àÂë£ºcmd.exe °´ÏµÍ³ ANSI ´úÂëÒ³£¨¼òÌåÖĞÎÄÎª GBK/936£©
+REM      ¶ÁÈ¡ .bat ÎÄ¼ş¡£±¾ÎÄ¼şÒò´Ë±£´æÎª GBK ¶ø·Ç UTF-8£¬
+REM      ·ñÔòÖĞÎÄ»á±»½âÎö³ÉÂÒÂë²¢±»µ±×÷ÃüÁîÖ´ĞĞ¡£
+REM   2. ĞĞÎ²£º±ØĞëÊÇ CRLF¡£LF »áµ¼ÖÂ cmd °Ñ¶àĞĞÕ³Á¬½âÎö¡£
+REM   ÁíÍâ±¾½Å±¾±ÜÃâÊ¹ÓÃÇ¶Ì× if/else ¿é£¬Í³Ò»ÓÃ goto Ìø×ª¡£
 REM ============================================================
 setlocal
 cd /d "%~dp0"
 
 echo.
 echo ============================================================
-echo   ATF Lab â€”â€” å®‰å…¨æ•™å­¦é¶åœº
-echo   ä»…ä¾›æ•™å­¦æ¼”ç¤ºï¼Œç¦æ­¢å…¬ç½‘éƒ¨ç½²
+echo   ATF Lab -- °²È«½ÌÑ§°Ğ³¡
+echo   ½ö¹©½ÌÑ§ÑİÊ¾£¬½ûÖ¹¹«Íø²¿Êğ
 echo ============================================================
 echo.
 
@@ -41,15 +43,15 @@ goto parse_args
 if "%USE_DOCKER%"=="1" goto docker_mode
 
 REM ============================================================
-REM  æœ¬åœ°æ¨¡å¼
+REM  ±¾µØÄ£Ê½
 REM ============================================================
 
-REM ---------------------------------------------------------- æŸ¥æ‰¾ Python
-REM ç‰ˆæœ¬åˆ¤æ–­äº¤ç»™ç‹¬ç«‹è„šæœ¬ï¼Œé¿å…åœ¨ for å—é‡Œå†™å«æ‹¬å·çš„ Python ä»£ç 
+REM ---------------------------------------------------------- ²éÕÒ Python
+REM °æ±¾ÅĞ¶Ï½»¸ø¶ÀÁ¢½Å±¾£¬±ÜÃâÔÚ for ¿éÀïĞ´º¬À¨ºÅµÄ Python ´úÂë
 set PY=
 for %%P in (python py) do call :try_python %%P
 if not defined PY goto no_python
-for /f "delims=" %%V in ('%PY% --version 2^>^&1') do echo [*] ä½¿ç”¨ %%V
+for /f "delims=" %%V in ('%PY% --version 2^>^&1') do echo [*] Ê¹ÓÃ %%V
 goto have_python
 
 :try_python
@@ -60,15 +62,15 @@ set PY=%1
 goto :eof
 
 :no_python
-echo [é”™è¯¯] æœªæ‰¾åˆ° Python 3.9+ï¼Œè¯·å…ˆå®‰è£…
-echo        ä¸‹è½½ï¼šhttps://www.python.org/downloads/
+echo [´íÎó] Î´ÕÒµ½ Python 3.9+£¬ÇëÏÈ°²×°
+echo        ÏÂÔØ£ºhttps://www.python.org/downloads/
 exit /b 1
 
 :have_python
 
-REM ---------------------------------------------------------- è™šæ‹Ÿç¯å¢ƒ
+REM ---------------------------------------------------------- ĞéÄâ»·¾³
 if exist ".venv\Scripts\activate.bat" goto venv_ready
-echo [*] åˆ›å»ºè™šæ‹Ÿç¯å¢ƒ .venv ...
+echo [*] ´´½¨ĞéÄâ»·¾³ .venv ...
 %PY% -m venv .venv
 if errorlevel 1 goto venv_fail
 
@@ -76,23 +78,23 @@ if errorlevel 1 goto venv_fail
 call .venv\Scripts\activate.bat
 if errorlevel 1 goto venv_fail
 
-echo [*] å®‰è£…åç«¯ä¾èµ–...
+echo [*] °²×°ºó¶ËÒÀÀµ...
 python -m pip install --upgrade pip -q
 python -m pip install -q -r backend\requirements.txt
 if errorlevel 1 goto deps_fail
 
-REM ---------------------------------------------------------- å‰ç«¯æ„å»º
+REM ---------------------------------------------------------- Ç°¶Ë¹¹½¨
 where node >nul 2>&1
 if errorlevel 1 goto no_node
 
 if "%FORCE_REBUILD%"=="1" goto build_frontend
 if not exist "frontend\dist\index.html" goto build_frontend
-echo [*] å‰ç«¯äº§ç‰©å·²å­˜åœ¨ï¼Œè·³è¿‡æ„å»ºï¼ˆç”¨ --rebuild å¼ºåˆ¶é‡å»ºï¼‰
+echo [*] Ç°¶Ë²úÎïÒÑ´æÔÚ£¬Ìø¹ı¹¹½¨£¨ÓÃ --rebuild Ç¿ÖÆÖØ½¨£©
 goto frontend_done
 
 :build_frontend
-echo [*] æ„å»ºå‰ç«¯...
-REM æŠŠ npm ç¼“å­˜æŒ‡å‘é¡¹ç›®å†…ï¼Œé¿å…å…¨å±€ç¼“å­˜æƒé™é—®é¢˜
+echo [*] ¹¹½¨Ç°¶Ë...
+REM °Ñ npm »º´æÖ¸ÏòÏîÄ¿ÄÚ£¬±ÜÃâÈ«¾Ö»º´æÈ¨ÏŞÎÊÌâ
 set npm_config_cache=%CD%\.npm-cache
 pushd frontend
 call npm install --no-audit --no-fund
@@ -103,25 +105,25 @@ popd
 goto frontend_done
 
 :npm_fail
-echo [é”™è¯¯] npm install å¤±è´¥
+echo [´íÎó] npm install Ê§°Ü
 popd
 exit /b 1
 
 :build_fail
-echo [é”™è¯¯] å‰ç«¯æ„å»ºå¤±è´¥
+echo [´íÎó] Ç°¶Ë¹¹½¨Ê§°Ü
 popd
 exit /b 1
 
 :no_node
-echo [!] æœªæ‰¾åˆ° nodeï¼Œè·³è¿‡å‰ç«¯æ„å»ºï¼ˆä»…æä¾› APIï¼Œå¯è®¿é—® /api/docsï¼‰
+echo [!] Î´ÕÒµ½ node£¬Ìø¹ıÇ°¶Ë¹¹½¨£¨½öÌá¹© API£¬¿É·ÃÎÊ /api/docs£©
 
 :frontend_done
 
-REM ---------------------------------------------------------- ç¯å¢ƒå˜é‡
+REM ---------------------------------------------------------- »·¾³±äÁ¿
 if exist ".env" goto env_ready
 if not exist ".env.example" goto env_ready
 copy /y ".env.example" ".env" >nul
-echo [!] å·²ä» .env.example ç”Ÿæˆ .envï¼Œè¯·æŒ‰éœ€ä¿®æ”¹ï¼ˆå°¤å…¶æ˜¯ ATF_SECRET_KEYï¼‰
+echo [!] ÒÑ´Ó .env.example Éú³É .env£¬Çë°´ĞèĞŞ¸Ä£¨ÓÈÆäÊÇ ATF_SECRET_KEY£©
 
 :env_ready
 if defined ATF_PORT goto port_ready
@@ -130,10 +132,10 @@ set ATF_PORT=8899
 
 echo.
 echo ============================================================
-echo   [OK] å¯åŠ¨ä¸­...
-echo        è®¿é—®åœ°å€ï¼šhttp://127.0.0.1:%ATF_PORT%
-echo        API æ–‡æ¡£ï¼šhttp://127.0.0.1:%ATF_PORT%/api/docs
-echo        æŒ‰ Ctrl+C åœæ­¢
+echo   [OK] Æô¶¯ÖĞ...
+echo        ·ÃÎÊµØÖ·£ºhttp://127.0.0.1:%ATF_PORT%
+echo        API ÎÄµµ£ºhttp://127.0.0.1:%ATF_PORT%/api/docs
+echo        °´ Ctrl+C Í£Ö¹
 echo ============================================================
 echo.
 
@@ -141,28 +143,28 @@ python -m uvicorn backend.main:app --host 0.0.0.0 --port %ATF_PORT%
 goto end
 
 REM ============================================================
-REM  å¤±è´¥åˆ†æ”¯
+REM  Ê§°Ü·ÖÖ§
 REM ============================================================
 :venv_fail
-echo [é”™è¯¯] åˆ›å»ºæˆ–æ¿€æ´»è™šæ‹Ÿç¯å¢ƒå¤±è´¥
+echo [´íÎó] ´´½¨»ò¼¤»îĞéÄâ»·¾³Ê§°Ü
 exit /b 1
 
 :deps_fail
-echo [é”™è¯¯] ä¾èµ–å®‰è£…å¤±è´¥
+echo [´íÎó] ÒÀÀµ°²×°Ê§°Ü
 exit /b 1
 
 REM ============================================================
-REM  Docker æ¨¡å¼
+REM  Docker Ä£Ê½
 REM ============================================================
 :docker_mode
 where docker >nul 2>&1
 if errorlevel 1 goto no_docker
 
-echo [*] ä½¿ç”¨ docker compose å¯åŠ¨...
+echo [*] Ê¹ÓÃ docker compose Æô¶¯...
 docker compose up --build -d
 if errorlevel 1 goto docker_fail
 
-echo [*] ç­‰å¾…æœåŠ¡å°±ç»ª...
+echo [*] µÈ´ı·şÎñ¾ÍĞ÷...
 set /a WAIT_N=0
 :wait_loop
 set /a WAIT_N+=1
@@ -174,29 +176,29 @@ goto wait_loop
 
 :docker_ok
 echo.
-echo [OK] å·²å¯åŠ¨ï¼šhttp://127.0.0.1:8899
-echo      æŸ¥çœ‹æ—¥å¿—ï¼šdocker compose logs -f
-echo      åœæ­¢æœåŠ¡ï¼šdocker compose down
+echo [OK] ÒÑÆô¶¯£ºhttp://127.0.0.1:8899
+echo      ²é¿´ÈÕÖ¾£ºdocker compose logs -f
+echo      Í£Ö¹·şÎñ£ºdocker compose down
 exit /b 0
 
 :docker_timeout
-echo [!] ç­‰å¾…è¶…æ—¶ï¼Œè¯·ç”¨ docker compose logs æŸ¥çœ‹æ—¥å¿—
+echo [!] µÈ´ı³¬Ê±£¬ÇëÓÃ docker compose logs ²é¿´ÈÕÖ¾
 exit /b 1
 
 :no_docker
-echo [é”™è¯¯] æœªæ‰¾åˆ° dockerï¼Œè¯·å…ˆå®‰è£… Docker Desktop
+echo [´íÎó] Î´ÕÒµ½ docker£¬ÇëÏÈ°²×° Docker Desktop
 exit /b 1
 
 :docker_fail
-echo [é”™è¯¯] docker compose å¯åŠ¨å¤±è´¥
+echo [´íÎó] docker compose Æô¶¯Ê§°Ü
 exit /b 1
 
 REM ============================================================
 :usage
-echo ç”¨æ³•ï¼š
-echo   start.bat            å¯åŠ¨æœåŠ¡
-echo   start.bat --rebuild  å¼ºåˆ¶é‡å»ºå‰ç«¯åå¯åŠ¨
-echo   start.bat --docker   ä½¿ç”¨ docker compose å¯åŠ¨
+echo ÓÃ·¨£º
+echo   start.bat            Æô¶¯·şÎñ
+echo   start.bat --rebuild  Ç¿ÖÆÖØ½¨Ç°¶ËºóÆô¶¯
+echo   start.bat --docker   Ê¹ÓÃ docker compose Æô¶¯
 exit /b 0
 
 :end
