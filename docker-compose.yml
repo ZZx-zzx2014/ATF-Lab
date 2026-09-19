@@ -1,0 +1,74 @@
+# ============================================================
+# ATF Lab - docker compose 配置
+#
+# ⚠️ 仅供教学演示（EDUCATIONAL USE ONLY）
+#   本项目是受控的安全教学靶场。
+#   请勿在互联网上公开发布、部署或传播。
+#
+# 启动：docker compose up --build
+# 访问：http://127.0.0.1:8899
+# ============================================================
+
+services:
+  atf-lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: atf-lab:2.0.0
+    container_name: atf-lab
+    restart: unless-stopped
+
+    # ⚠️ 只绑定回环地址：不对外网暴露，符合"禁止公网部署"的约定。
+    #    如确需局域网访问，把 127.0.0.1 改成 0.0.0.0 并自行承担风险。
+    ports:
+      - "127.0.0.1:8899:8899"      # 主服务（API + 前端 SPA）
+      - "127.0.0.1:2121:2121"      # 仿真 FTP
+      - "127.0.0.1:3306:3306"      # 仿真 MySQL
+      - "127.0.0.1:6379:6379"      # 仿真 Redis
+      - "127.0.0.1:31337:31337"    # 仿真调试服务
+
+    environment:
+      # ---- 服务 ----
+      ATF_HOST: "0.0.0.0"
+      ATF_PORT: "8899"
+      ATF_DEBUG: "0"
+
+      # ---- 数据库 ----
+      ATF_DB_PATH: "/app/data/atf.db"
+
+      # ---- 密钥（生产部署务必修改）----
+      # 可用 openssl rand -hex 32 生成
+      ATF_SECRET_KEY: "${ATF_SECRET_KEY:-change-me-in-production-please}"
+      ATF_TOKEN_TTL: "604800"
+
+      # ---- 预置管理员（可选，留空则由首个注册用户自动成为管理员）----
+      ATF_ADMIN_USER: "${ATF_ADMIN_USER:-}"
+      ATF_ADMIN_PASSWORD: "${ATF_ADMIN_PASSWORD:-}"
+
+      # ---- 仿真网络服务 ----
+      ATF_NETLAB_ENABLED: "1"
+
+    volumes:
+      # SQLite 数据持久化：容器重建后进度不丢
+      - atf-data:/app/data
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import urllib.request, sys
+          try:
+              r = urllib.request.urlopen('http://127.0.0.1:8899/api/v1/health', timeout=4)
+              sys.exit(0 if r.status == 200 else 1)
+          except Exception:
+              sys.exit(1)
+      interval: 30s
+      timeout: 6s
+      start_period: 12s
+      retries: 3
+
+volumes:
+  atf-data:
+    driver: local

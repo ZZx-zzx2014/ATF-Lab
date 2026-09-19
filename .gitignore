@@ -1,0 +1,95 @@
+# ============================================================
+# ATF Lab - Git 忽略规则
+# ⚠️ 仅供教学演示（EDUCATIONAL USE ONLY）
+# ============================================================
+
+# ---------------------------------------------------------- Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虚拟环境
+venv/
+.venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# ---------------------------------------------------------- 数据库
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/
+
+# ---------------------------------------------------------- 环境变量
+.env
+.env.local
+.env.*.local
+
+# ---------------------------------------------------------- Node / 前端
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+.npm-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ---------------------------------------------------------- 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------- 编辑器 / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# ---------------------------------------------------------- 测试与临时产物
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+*.log
+smoke_result.txt
+netlab_result.txt
+.lint_result.txt
+.tmp_*.txt
+.probe/
+.probe2/
+
+# ---------------------------------------------------------- Docker
+.dockerignore

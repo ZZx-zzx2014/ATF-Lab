@@ -1,0 +1,42 @@
+# ============================================================
+# ATF Lab - Git 行尾规范
+# ⚠️ 仅供教学演示（EDUCATIONAL USE ONLY）
+#
+# 避免 Windows/macOS/Linux 协作时因 CRLF/LF 差异产生噪音 diff。
+# 统一策略：仓库内一律存 LF，检出时按平台自动转换。
+# ============================================================
+
+* text=auto eol=lf
+
+# ---- 明确按文本处理 ----
+*.py      text eol=lf
+*.js      text eol=lf
+*.jsx     text eol=lf
+*.mjs     text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.txt     text eol=lf
+*.example text eol=lf
+
+# ---- Shell 脚本必须 LF，否则 Linux/macOS 无法执行 ----
+*.sh      text eol=lf
+*.command text eol=lf
+
+# ---- Windows 批处理用 CRLF ----
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# ---- 二进制文件不做转换 ----
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.db      binary
+*.sqlite  binary
+*.woff    binary
+*.woff2   binary
