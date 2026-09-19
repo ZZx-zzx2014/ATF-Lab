@@ -223,13 +223,43 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8899
 
 ### 验证部署
 
+项目自带 5 个验证脚本，可逐项确认功能与安全边界：
+
 ```bash
-# 健康检查（应返回 code:0 且 levels:37）
+# 1. 健康检查（应返回 code:0 且 levels:37）
 curl http://127.0.0.1:8899/api/v1/health
 
-# 运行完整冒烟测试（50 项）
+# 2. 源码编译自检（25 个文件）
+python scripts/lint.py backend
+python scripts/lint.py netlab
+
+# 3. 端到端冒烟测试（50 项：认证/关卡/flag/排行/管理/压轴关）
 python scripts/smoke_test.py
+
+# 4. 安全边界审计（AST 级扫描，确认无危险能力）
+python scripts/audit_safety.py
+
+# 5. 验收标准核验（49 项，逐条对照需求）
+python scripts/acceptance.py
+
+# 6. 仿真网络服务验证（需服务已启动）
+python scripts/check_netlab.py
 ```
+
+各脚本会在项目根目录生成对应的 `*_result.txt` 报告（已在 `.gitignore` 中排除）。
+
+**当前验证状态**：
+
+| 脚本 | 结果 |
+|---|---|
+| `lint.py` | ✅ 25/25 文件编译通过 |
+| `smoke_test.py` | ✅ 50/50 通过 |
+| `audit_safety.py` | ✅ 全部通过（无命令执行/无出站请求/无真实反序列化…） |
+| `acceptance.py` | ✅ 49/49 通过 |
+| `check_netlab.py` | ✅ 6/6 安全边界检查通过 |
+
+> 前端 UI 另有 Playwright 脚本 `scripts/verify_ui.mjs`（21 项），
+> 需在 `frontend/` 下安装 `playwright` 后运行。
 
 ---
 

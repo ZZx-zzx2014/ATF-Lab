@@ -1,0 +1,12 @@
+# Claude Code
+CLAUDE.md
+
+# 测试产物（运行验证脚本后生成）
+smoke_result.txt
+netlab_result.txt
+safety_audit_result.txt
+ui_result.txt
+acceptance_result.txt
+*.result
+.lint_result.txt
+.tmp_*.txt

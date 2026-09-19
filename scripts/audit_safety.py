@@ -55,10 +55,17 @@ FORBIDDEN_CALLS = {
 }
 
 # 允许的例外：文件相对路径前缀 → 规则名集合（"*" 表示全部）
+#
+# 说明：scripts/ 下的**验证脚本**需要发起本地 HTTP 请求来测试 API、
+# 或调用子进程来运行其他检查。它们属于开发期测试工具，
+# 不参与线上运行，因此与 backend/ 和 netlab/ 的严格标准区别对待。
 ALLOWLIST = {
     # 自测脚本需要发起本地 HTTP 请求来验证 API 是否正常
     "scripts/smoke_test.py": {"出站 HTTP 请求", "socket 出站连接"},
     "scripts/check_netlab.py": {"socket 出站连接"},
+    # 验收脚本需要发请求 + 调用审计子进程
+    "scripts/acceptance.py": {"出站 HTTP 请求", "socket 出站连接",
+                              "命令执行"},
     # 本脚本自身包含规则文本
     "scripts/audit_safety.py": {"*"},
     # sqlite3.connect 是本地文件数据库，不是网络连接
@@ -255,12 +262,15 @@ def main():
             out.append("         ✗ 未导入 %-14s (%s)" % (mod, desc))
         for fn, desc in sorted(FORBIDDEN_CALLS.items()):
             out.append("         ✗ 未调用 %-14s (%s)" % (fn, desc))
+        out.append("")
+        out.append("       说明：scripts/ 下的验证脚本需要发起本地 HTTP 请求")
+        out.append("       来测试 API 是否正常，属于开发期测试工具，")
+        out.append("       不参与线上运行（见 ALLOWLIST）。")
 
     out.append("")
     out.append("-" * 74)
     out.append("[2] 专项检查")
     out.append("-" * 74)
-
     checks = [
         ("netlab 仅绑定回环", check_netlab_loopback),
         ("压轴关只操作模拟表", check_sim_tables),
