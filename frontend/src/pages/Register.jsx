@@ -1,10 +1,13 @@
 /**
  * ATF Lab - 注册页
  * ⚠️ 仅供教学演示（EDUCATIONAL USE ONLY）
+ *
+ * 注册成功后会展示一次性恢复码，用于日后忘记密码时自助重置。
  */
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../store'
+import { RecoveryCodeBox } from './Account'
 
 export default function Register() {
   const { register } = useApp()
@@ -15,6 +18,7 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [recovery, setRecovery] = useState(null)
 
   const submit = async (e) => {
     e.preventDefault()
@@ -23,19 +27,65 @@ export default function Register() {
       setErr('两次输入的密码不一致')
       return
     }
-    if (password.length < 6) {
-      setErr('密码至少 6 位')
+    if (password.length < 8) {
+      setErr('密码至少 8 位')
+      return
+    }
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      setErr('密码需同时包含字母和数字')
       return
     }
     setBusy(true)
     try {
-      await register(username.trim(), password, email.trim())
-      nav('/levels')
+      const d = await register(username.trim(), password, email.trim())
+      // 先展示恢复码，用户确认后再进入平台
+      if (d.recovery_code) {
+        setRecovery(d)
+      } else {
+        nav('/levels')
+      }
     } catch (ex) {
       setErr(ex.message)
     } finally {
       setBusy(false)
     }
+  }
+
+  // 注册成功：展示恢复码
+  if (recovery) {
+    return (
+      <div className="container" style={{ maxWidth: 560 }}>
+        <div className="card card-pad-lg">
+          <h2 style={{ marginTop: 0 }}>🎉 注册成功</h2>
+          <p className="muted">
+            账号 <b>{recovery.user.username}</b> 已创建。
+            {recovery.is_first_user && (
+              <span>
+                {' '}
+                你是本站第一个用户，已自动获得<b>管理员权限</b>。
+              </span>
+            )}
+          </p>
+
+          <RecoveryCodeBox
+            code={recovery.recovery_code}
+            notice={recovery.recovery_notice}
+          />
+
+          <div className="notice notice-info" style={{ marginTop: 14 }}>
+            💡 请把恢复码保存到密码管理器。忘记密码时，它是在登录页自助重置的
+            唯一凭据；用一次即失效，重置后会下发新的。
+          </div>
+
+          <button
+            className="btn btn-primary btn-block mt-16"
+            onClick={() => nav('/levels')}
+          >
+            我已保存，开始挑战 →
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -74,7 +124,7 @@ export default function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="至少 6 位"
+              placeholder="至少 8 位，需含字母和数字"
               autoComplete="new-password"
               required
             />
@@ -102,9 +152,6 @@ export default function Register() {
         <p className="center mt-16 faint">
           已有账号？<Link to="/login">去登录</Link>
         </p>
-        <div className="faint center mt-16">
-          提示：本平台<b>第一个注册的用户</b>会自动成为管理员，可访问管理后台。
-        </div>
       </div>
     </div>
   )

@@ -18,6 +18,7 @@ import LevelDetail from './pages/LevelDetail'
 import Finale from './pages/Finale'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import { ChangePassword, Recover } from './pages/Account'
 import Profile from './pages/Profile'
 import Leaderboard from './pages/Leaderboard'
 import Admin from './pages/Admin'
@@ -26,6 +27,45 @@ import ApiDocs from './pages/ApiDocs'
 import NotFound from './pages/NotFound'
 
 const ACCEPT_KEY = 'atf_disclaimer_accepted'
+
+/**
+ * 初始密码提醒横幅。
+ *
+ * 管理员由部署流程自动创建时会被标记 must_change_password，
+ * 在改密之前，站内所有页面顶部都会持续显示这条红色警示。
+ */
+function PasswordWarning() {
+  const { user } = useApp()
+  if (!user || !user.must_change_password) return null
+  return (
+    <div
+      style={{
+        background: 'var(--danger)',
+        color: '#fff',
+        padding: '9px 0',
+        fontSize: 14,
+      }}
+    >
+      <div className="container row-between">
+        <span>
+          🔐 <b>安全提醒：</b>你仍在使用<b>初始密码</b>，请立即修改后再使用平台。
+        </span>
+        <a
+          href="/change-password"
+          className="btn btn-sm"
+          style={{
+            background: '#fff',
+            color: 'var(--danger)',
+            borderColor: '#fff',
+            fontWeight: 700,
+          }}
+        >
+          立即修改
+        </a>
+      </div>
+    </div>
+  )
+}
 
 function Shell() {
   const { authReady, mode, setMode } = useApp()
@@ -64,6 +104,7 @@ function Shell() {
   return (
     <div className="app">
       <Nav />
+      <PasswordWarning />
       <main className="page">
         {!authReady ? (
           <div className="loading">
@@ -80,6 +121,8 @@ function Shell() {
             <Route path="/finale" element={<Finale />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/recover" element={<Recover />} />
+            <Route path="/change-password" element={<ChangePassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin" element={<Admin />} />

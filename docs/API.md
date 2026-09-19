@@ -164,13 +164,13 @@ token 通过 `/api/v1/auth/register` 或 `/api/v1/auth/login` 获取，默认有
 | 字段 | 类型 | 必填 | 约束 |
 |---|---|---|---|
 | `username` | string | 是 | 3-24 位，仅字母/数字/下划线/连字符 |
-| `password` | string | 是 | 6-128 位 |
+| `password` | string | 是 | **至少 8 位，需含字母和数字**，且不在弱口令黑名单 |
 | `email` | string | 否 | 最长 120 位 |
 
 ```json
 {
   "username": "alice",
-  "password": "secret123",
+  "password": "StrongPass123",
   "email": "alice@example.com"
 }
 ```
@@ -188,15 +188,28 @@ token 通过 `/api/v1/auth/register` 或 `/api/v1/auth/login` 获取，默认有
       "username": "alice",
       "email": "alice@example.com",
       "role": "admin",
-      "created_at": 1789811638.59
+      "created_at": 1789811638.59,
+      "must_change_password": false
     },
-    "is_first_user": true
+    "is_first_user": true,
+    "recovery_code": "gHE4-w4gZ-6DUA-UD5P",
+    "recovery_notice": "请立即保存此恢复码。它是忘记密码时自助重置的唯一凭据，只显示这一次。"
   }
 }
 ```
 
 > 💡 **平台第一个注册的用户自动成为管理员**（`role: "admin"`），
 > 此时 `is_first_user` 为 `true`。
+
+> 🔑 **`recovery_code` 只在此处返回一次**，数据库仅存 PBKDF2 哈希。
+> 前端应引导用户立即保存。忘记密码时用它调用 `/api/v1/auth/recover`。
+
+**错误**：
+
+| code | 场景 |
+|---:|---|
+| 1001 | 用户名格式不合法 / 密码强度不足 |
+| 1005 | 用户名已被占用 |
 
 **错误**：
 
@@ -253,10 +266,142 @@ token 通过 `/api/v1/auth/register` 或 `/api/v1/auth/login` 获取，默认有
   "message": "ok",
   "data": {
     "id": 1, "username": "alice", "email": "alice@example.com",
-    "role": "admin", "created_at": 1789811638.59
+    "role": "admin", "created_at": 1789811638.59,
+    "must_change_password": false,
+    "password_changed_at": 1789811700.12
   }
 }
 ```
+
+> `must_change_password` 为 `true` 时，前端会在**每一页顶部**显示红色警示横幅，
+> 提醒用户修改初始密码。由部署流程自动创建的管理员该字段为 `true`。
+
+---
+
+### POST `/api/v1/auth/change-password`
+
+修改自己的密码（需登录）。
+
+**请求体**：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `old_password` | string | 当前密码 |
+| `new_password` | string | 新密码，至少 8 位、含字母和数字 |
+
+```json
+{ "old_password": "InitPass123", "new_password": "NewStrongPass456" }
+```
+
+**响应示例**：
+
+```json
+{
+  "code": 0,
+  "message": "密码已更新",
+  "data": {
+    "user": {
+      "id": 1, "username": "alice", "role": "admin",
+      "must_change_password": false,
+      "password_changed_at": 1789811800.55
+    }
+  }
+}
+```
+
+**错误**：
+
+| code | 场景 |
+|---:|---|
+| 1001 | 新密码强度不足 / 与当前密码相同 |
+| 1002 | 当前密码不正确 |
+
+---
+
+### POST `/api/v1/auth/recover`
+
+**使用一次性恢复码重置密码**（无需登录）。
+
+> 这是本项目提供的唯一自助找回密码方式。
+> 刻意**不提供**任何通用后门密码。
+
+**请求体**：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `username` | string | 用户名 |
+| `recovery_code` | string | 注册时下发的恢复码，格式 `XXXX-XXXX-XXXX-XXXX` |
+| `new_password` | string | 新密码，至少 8 位 |
+
+```json
+{
+  "username": "alice",
+  "recovery_code": "gHE4-w4gZ-6DUA-UD5P",
+  "new_password": "BrandNewPass789"
+}
+```
+
+**成功响应**：
+
+```json
+{
+  "code": 0,
+  "message": "密码已重置",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": { "id": 1, "username": "alice", "role": "admin",
+              "must_change_password": false },
+    "recovery_code": "mK3p-Qw8z-Nv2x-Rt5y",
+    "recovery_notice": "密码已重置。这是你的新恢复码，旧码已失效，请立即保存。"
+  }
+}
+```
+
+**行为说明**：
+
+- **恢复码是一次性的**：使用后立即失效，并自动生成新码返回
+- 用旧码再次请求将返回 `1002`
+- 成功后 `must_change_password` 被清除
+
+**错误**：
+
+| code | 场景 |
+|---:|---|
+| 1001 | 新密码强度不足 |
+| 1002 | 用户名或恢复码不正确（**不区分**，防账号枚举） |
+| 1006 | 账号因多次失败被锁定 |
+
+---
+
+### POST `/api/v1/auth/regenerate-recovery`
+
+重新生成恢复码（需登录）。用于旧码可能泄露时主动轮换。
+
+**响应示例**：
+
+```json
+{
+  "code": 0,
+  "message": "恢复码已重新生成",
+  "data": {
+    "recovery_code": "aB7c-De9f-Gh2j-Kl4m",
+    "recovery_notice": "旧恢复码已失效。请立即保存新的恢复码，它只显示这一次。"
+  }
+}
+```
+
+---
+
+### 登录限流说明
+
+`/api/v1/auth/login` 与 `/api/v1/auth/recover` 均受账号级限流保护：
+
+| 项目 | 值 |
+|---|---|
+| 失败阈值 | 连续 5 次 |
+| 锁定时长 | 15 分钟 |
+| 锁定期内行为 | 即使密码正确也返回 `1006` |
+| 解除方式 | 等待自动解锁，或管理员执行 `python -m backend.admin unlock --user <名>` |
 
 ---
 

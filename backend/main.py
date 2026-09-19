@@ -54,6 +54,79 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):
+    """
+    统一注入安全响应头。
+
+    说明：这是一个纯 API + SPA 的服务，因此 CSP 需要允许同源脚本与样式。
+    未启用 HSTS，因为本地部署通常是 HTTP；公网部署请在反向代理层开启 HSTS。
+    """
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault(
+        "Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'",
+    )
+    return response
+
+
+# ================================================================
+# 启动前的配置安全检查
+# ================================================================
+
+DEFAULT_INSECURE_KEYS = {
+    "atf-lab-dev-secret-change-me",
+    "change-me-in-production-please",
+    "changeme", "secret", "dev",
+}
+
+
+def _check_secret_key() -> None:
+    """
+    检查 JWT 密钥强度。
+
+    刻意不阻止启动（本地体验优先），但会打印醒目警告；
+    公网部署时会成为明显风险提示。
+    """
+    key = settings.SECRET_KEY or ""
+    weak = (
+        key in DEFAULT_INSECURE_KEYS
+        or len(key) < 32
+        or key.lower() in ("secret", "password", "123456")
+    )
+    if not weak:
+        log.info("密钥检查：ATF_SECRET_KEY 强度正常")
+        return
+
+    bar = "!" * 68
+    log.warning("")
+    log.warning(bar)
+    log.warning("  ⚠️  安全警告：ATF_SECRET_KEY 使用了默认值或强度不足")
+    log.warning(bar)
+    log.warning("  当前密钥长度：%d 字符", len(key))
+    log.warning("  风险：攻击者可用已知密钥伪造 JWT，从而冒充任意用户（含管理员）")
+    log.warning("")
+    log.warning("  修复方式 —— 生成一个强密钥并写入 .env：")
+    log.warning("    python -c \"import secrets;print(secrets.token_hex(32))\"")
+    log.warning("    然后在 .env 中设置 ATF_SECRET_KEY=<生成的值>")
+    log.warning("")
+    log.warning("  本地学习可忽略；公网部署必须修改。")
+    log.warning(bar)
+    log.warning("")
+
+
 # ================================================================
 # 全局异常处理 —— 一律转换为统一响应格式
 # ================================================================
@@ -106,6 +179,7 @@ def _startup() -> None:
     admin.load_overrides()
     from .challenges import registry as _reg
     log.info("ATF Lab 启动完成：%d 个关卡已装载", len(_reg.all()))
+    _check_secret_key()
 
     # ⚠️ 仅供教学演示：启动仿真网络服务（只回静态文本、仅监听回环、零出站）
     if settings.NETLAB_ENABLED:

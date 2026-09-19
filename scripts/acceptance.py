@@ -215,8 +215,45 @@ def main():
 
     # ============ 附加：交付物清单 ============
     for f in ["README.md", "LICENSE", ".gitignore", ".env.example",
-              "Dockerfile", "docker-compose.yml", "docs/API.md"]:
+              "Dockerfile", "docker-compose.yml", "docs/API.md",
+              "docs/PUBLIC_DEPLOY.md", "backend/admin.py"]:
         check("7. 交付物存在: " + f, (ROOT / f).is_file())
+
+    # ============ 附加：账号安全机制 ============
+    import sqlite3
+    db = ROOT / "data" / "atf.db"
+    if db.is_file():
+        con = sqlite3.connect(str(db))
+        con.row_factory = sqlite3.Row
+        adm = con.execute(
+            "SELECT username, must_change_password, recovery_code_hash "
+            "FROM users WHERE role='admin' LIMIT 1").fetchone()
+        con.close()
+        check("8a. ★存在自动创建的管理员", adm is not None)
+        check("8b. ★管理员被标记为需改密",
+              adm is not None and adm["must_change_password"] == 1)
+        check("8c. 管理员有一次性恢复码",
+              adm is not None and adm["recovery_code_hash"] is not None)
+    else:
+        check("8a. 数据库存在", False, "未找到 %s" % db)
+
+    auth_src = read("backend/routers/auth.py")
+    check("8d. ★不存在通用后门密码",
+          "backdoor" not in auth_src.lower()
+          and "master_password" not in auth_src.lower()
+          and "universal" not in auth_src.lower())
+    check("8e. ★不存在密码回传到第三方",
+          "requests.post" not in auth_src
+          and "urlopen" not in auth_src
+          and "webhook" not in auth_src.lower())
+    check("8f. 恢复码用后即换新（一次性）",
+          "recovery_code_hash = ?" in auth_src
+          and "recovery_code_used_at" in auth_src)
+
+    main_src = read("backend/main.py")
+    for h in ["X-Content-Type-Options", "X-Frame-Options",
+              "Content-Security-Policy", "Referrer-Policy"]:
+        check("8g. 注入安全响应头: " + h, h in main_src)
 
     # ============ 输出 ============
     passed = sum(1 for _, ok, _ in R if ok)

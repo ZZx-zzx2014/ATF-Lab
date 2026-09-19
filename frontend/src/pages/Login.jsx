@@ -69,6 +69,9 @@ export function Login() {
         <p className="center mt-16 faint">
           还没有账号？<Link to="/register">立即注册</Link>
         </p>
+        <p className="center faint" style={{ marginTop: 4 }}>
+          忘记密码？<Link to="/recover">使用恢复码重置</Link>
+        </p>
       </div>
     </div>
   )

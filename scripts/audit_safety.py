@@ -68,6 +68,8 @@ ALLOWLIST = {
                               "命令执行"},
     # 远程仓库验证脚本需要调用 gh CLI 子进程
     "scripts/verify_remote.py": {"命令执行"},
+    # 认证安全测试脚本需要发请求 + 直接读 SQLite 断言
+    "scripts/test_auth.py": {"出站 HTTP 请求", "socket 出站连接"},
     # 本脚本自身包含规则文本
     "scripts/audit_safety.py": {"*"},
     # sqlite3.connect 是本地文件数据库，不是网络连接

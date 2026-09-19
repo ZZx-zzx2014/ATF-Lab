@@ -89,6 +89,19 @@ export const api = {
   login: (username, password) =>
     post('/api/v1/auth/login', { username, password }),
   me: (opts) => get('/api/v1/auth/me', opts),
+  changePassword: (oldPassword, newPassword) =>
+    post('/api/v1/auth/change-password', {
+      old_password: oldPassword,
+      new_password: newPassword,
+    }),
+  // 使用一次性恢复码自助重置密码（替代任何"万能密码"入口）
+  recover: (username, recoveryCode, newPassword) =>
+    post('/api/v1/auth/recover', {
+      username,
+      recovery_code: recoveryCode,
+      new_password: newPassword,
+    }),
+  regenerateRecovery: () => post('/api/v1/auth/regenerate-recovery', {}),
 
   /* ---------------------------------------------------------------- 关卡 */
   levels: (params = {}) => {
