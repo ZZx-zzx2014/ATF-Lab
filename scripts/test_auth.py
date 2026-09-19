@@ -183,13 +183,19 @@ def main():
     check("含 Permissions-Policy", "permissions-policy" in hl)
 
     # ============ 管理员初始化 ============
-    # 直接查库确认（避免依赖 CLI 的中文控制台输出编码）
+    # 说明：must_change_password 要用**全新数据库**验证，
+    #   因为跑过冒烟测试后 admin 可能已改密，标记会被正常清除。
+    import os
+    import shutil
     import sqlite3
+    import subprocess
+    import tempfile
+
     db = r"D:\deepseek-harness\ATF_sever\data\atf.db"
     con = sqlite3.connect(db)
     con.row_factory = sqlite3.Row
     row = con.execute(
-        "SELECT username, role, must_change_password, "
+        "SELECT username, role, "
         "       (recovery_code_hash IS NOT NULL) AS has_rc "
         "FROM users WHERE role = 'admin' LIMIT 1"
     ).fetchone()
@@ -197,11 +203,34 @@ def main():
     check("存在自动创建的管理员账号",
           row is not None and row["username"] == "admin",
           "row=%s" % (dict(row) if row else None))
-    check("★管理员被标记为需改密(must_change_password=1)",
-          row is not None and row["must_change_password"] == 1,
-          "must_change_password=%s" % (row["must_change_password"] if row else "N/A"))
     check("管理员有恢复码",
           row is not None and row["has_rc"] == 1)
+
+    # 全新库验证初始化标记
+    tmpdir = tempfile.mkdtemp(prefix="atf_authtest_")
+    try:
+        fresh = os.path.join(tmpdir, "fresh.db")
+        env = dict(os.environ)
+        env["ATF_DB_PATH"] = fresh
+        subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0,'.'); "
+             "from backend.database import init_db; init_db()"],
+            cwd=r"D:\deepseek-harness\ATF_sever", env=env, capture_output=True)
+        frow = None
+        if os.path.isfile(fresh):
+            c2 = sqlite3.connect(fresh)
+            c2.row_factory = sqlite3.Row
+            frow = c2.execute(
+                "SELECT must_change_password FROM users "
+                "WHERE role='admin' LIMIT 1").fetchone()
+            c2.close()
+        check("★初始化时管理员被标记为需改密(must_change_password=1)",
+              frow is not None and frow["must_change_password"] == 1,
+              "must_change_password=%s" % (frow["must_change_password"]
+                                           if frow else "N/A"))
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     # ============ 输出 ============
     passed = sum(1 for _, ok, _ in R if ok)

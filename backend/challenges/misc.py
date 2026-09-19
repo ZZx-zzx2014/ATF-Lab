@@ -73,16 +73,20 @@ def register() -> None:
             flag="flag{deobfuscated_string}",
             tags=["混淆", "反混淆"],
             handler=lambda ctx: sb.sim({
+                # ⚠️ 仅供教学演示：混淆样例。三个片段按 [1]+[2]+[0] 顺序
+                #   拼接后恰好是 flag{deobfuscated_string} 的 Base64：
+                #     ZmxhZ3tkZW9iZnVzY2F0ZWRfc3RyaW5nfQ==
                 "obfuscated": (
-                    "var _0x4f2a = ['fQ==', 'Z2Fs', 'Z19zdH']; "
+                    "var _0x4f2a = "
+                    "['RyaW5nfQ==', 'ZmxhZ3tk', 'ZW9iZnVzY2F0ZWRfc3']; "
                     "var s = _0x4f2a[1] + _0x4f2a[2] + _0x4f2a[0]; "
                     "// 拼接后再 Base64 解码"
                 ),
                 "steps": [
-                    "拼接三个片段得到 Base64 串",
-                    "Base64 解码后得到明文（注意补全花括号）",
-                ],
-                "note": "实际 flag 为 flag{deobfuscated_string}",
+                    "按 [1]+[2]+[0] 的顺序拼接三个片段",
+                    "拼接得到 ZmxhZ3tkZW9iZnVzY2F0ZWRfc3RyaW5nfQ==",
+                    "Base64 解码即得 flag{deobfuscated_string}",
+                ],                "note": "解密过程：拼接 -> Base64 解码。",
             }),
         ),
         Level(

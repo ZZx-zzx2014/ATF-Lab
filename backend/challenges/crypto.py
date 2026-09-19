@@ -19,7 +19,7 @@ def register() -> None:
             hints=[
                 "凯撒密码就是把字母表整体平移固定位数。",
                 "试试暴力枚举 1 到 25 所有位移，找可读的英文。",
-                "位移量是 3。密文：IODJ{NHDVDU_VKLIW_WKUHH}",
+                "位移量是 3。密文：IODJ{FDHVDU_VKLIW_WKUHH}",
             ],
             writeup="""凯撒密码是最古老的替换密码：每个字母向后（或向前）平移固定位数。
 

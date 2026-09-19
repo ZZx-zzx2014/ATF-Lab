@@ -6,6 +6,7 @@ ATF Lab - 验收标准自动核验
 """
 import io
 import json
+import os
 import re
 import subprocess
 import sys
@@ -220,22 +221,56 @@ def main():
         check("7. 交付物存在: " + f, (ROOT / f).is_file())
 
     # ============ 附加：账号安全机制 ============
+    # 说明：这里刻意用一个**全新的临时数据库**来验证初始化行为，
+    #   而不是读 data/atf.db —— 因为运行冒烟测试后，
+    #   admin 可能已经改过密码，must_change_password 会被正常清除，
+    #   那样会造成"因测试顺序而失败"的假阴性。
     import sqlite3
-    db = ROOT / "data" / "atf.db"
-    if db.is_file():
-        con = sqlite3.connect(str(db))
-        con.row_factory = sqlite3.Row
-        adm = con.execute(
-            "SELECT username, must_change_password, recovery_code_hash "
-            "FROM users WHERE role='admin' LIMIT 1").fetchone()
-        con.close()
-        check("8a. ★存在自动创建的管理员", adm is not None)
-        check("8b. ★管理员被标记为需改密",
-              adm is not None and adm["must_change_password"] == 1)
-        check("8c. 管理员有一次性恢复码",
-              adm is not None and adm["recovery_code_hash"] is not None)
-    else:
-        check("8a. 数据库存在", False, "未找到 %s" % db)
+    import tempfile
+    import shutil
+    tmpdir = tempfile.mkdtemp(prefix="atf_accept_")
+    try:
+        db = ROOT / "data" / "atf.db"
+        # 1) 真实库：确认存在管理员
+        if db.is_file():
+            con = sqlite3.connect(str(db))
+            con.row_factory = sqlite3.Row
+            adm = con.execute(
+                "SELECT username, recovery_code_hash "
+                "FROM users WHERE role='admin' LIMIT 1").fetchone()
+            con.close()
+            check("8a. ★存在自动创建的管理员", adm is not None)
+            check("8c. 管理员有一次性恢复码",
+                  adm is not None and adm["recovery_code_hash"] is not None)
+        else:
+            check("8a. 数据库存在", False, "未找到 %s" % db)
+
+        # 2) 全新库：确认初始化时确实标记为需改密
+        fresh_db = os.path.join(tmpdir, "fresh.db")
+        env = dict(os.environ)
+        env["ATF_DB_PATH"] = fresh_db
+        r = subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0,'.'); "
+             "from backend.database import init_db; init_db()"],
+            cwd=str(ROOT), env=env, capture_output=True)
+        if os.path.isfile(fresh_db):
+            con = sqlite3.connect(fresh_db)
+            con.row_factory = sqlite3.Row
+            row = con.execute(
+                "SELECT must_change_password FROM users "
+                "WHERE role='admin' LIMIT 1").fetchone()
+            con.close()
+            check("8b. ★初始化时管理员被标记为需改密",
+                  row is not None and row["must_change_password"] == 1,
+                  "must_change_password=%s" % (row["must_change_password"]
+                                               if row else "N/A"))
+        else:
+            check("8b. 全新库可初始化", False,
+                  "init_db 未生成数据库; stderr=%s"
+                  % r.stderr.decode("utf-8", "replace")[:120])
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     auth_src = read("backend/routers/auth.py")
     check("8d. ★不存在通用后门密码",
