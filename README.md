@@ -32,6 +32,53 @@
 
 ---
 
+## 📌 版本状态
+
+**当前版本：`v2.0.0-rc1`（候选版 / Release Candidate）**
+
+功能已完整实现并通过自动化验证，但**尚未在所有部署路径上实测**，
+因此暂标为候选版而非正式版。
+
+### 已验证 ✅
+
+| 验证项 | 结果 |
+|---|---|
+| 源码编译自检 | 25 / 25 文件通过 |
+| 端到端冒烟测试 | 50 / 50 通过 |
+| 安全边界审计（AST 级） | 全部通过 |
+| 验收标准核验 | 49 / 49 通过 |
+| 仿真网络服务 | 6 / 6 安全边界检查通过 |
+| 前端 UI（Playwright） | 21 / 21 通过 |
+| 全部 37 关 flag 校验 | 通过 |
+
+验证环境：Windows 11 + Python 3.14.4 + Node 24.15.0
+
+### 尚未实测 ⚠️
+
+以下项目**代码已写好但未在真实环境执行过**，是 rc1 与正式版之间的差距：
+
+| 项目 | 状态 | 说明 |
+|---|---|---|
+| `docker compose up --build` | ⚠️ 未实测 | 仅通过 `docker compose config` 语法校验；开发机虚拟化未启用，镜像未真正构建过 |
+| `start.sh` (macOS/Linux) | ⚠️ 未实测 | 逻辑已实现，未在对应平台运行 |
+| `start.command` (macOS) | ⚠️ 未实测 | 同上 |
+| `start.bat` (Windows) | ⚠️ 未实测 | 逻辑已实现，未完整跑通 |
+| Linux / macOS 运行 | ⚠️ 未实测 | 仅在 Windows 上验证过 |
+| Python 3.9 – 3.12 | ⚠️ 未实测 | 仅在 Python 3.14 上验证过 |
+
+### 升级为正式版的条件
+
+以下任一路径走通，即可将版本号提升为 `v2.0.0` 并打正式 tag：
+
+1. 在启用虚拟化的机器上跑通 `docker compose up --build`，或
+2. 在 macOS / Linux 上跑通 `./start.sh`，或
+3. 在 Windows 上跑通 `start.bat`
+
+> 💡 **已知环境问题**：若 `docker compose up` 报
+> 「Virtualization support not detected」，说明 Windows 的
+> **虚拟机平台**与 **Hyper-V** 功能未启用（与 CPU 是否支持无关）。
+> 启用方法见 [部署](#-部署) 章节。
+
 ## 📖 目录
 
 - [项目简介](#-项目简介)
@@ -614,6 +661,67 @@ ATF_SECRET_KEY=$(openssl rand -hex 32) docker compose up --build
 `docker-compose.yml` 中所有端口都绑定在 `127.0.0.1`，**不对外网暴露**。
 这是刻意的设计，符合本项目「禁止公网部署」的约定。
 
+### 常见问题：Docker 报「Virtualization support not detected」
+
+Windows 上首次运行 Docker Desktop 时可能遇到：
+
+```
+Virtualization support not detected
+Docker Desktop failed to start because virtualisation support wasn't detected.
+```
+
+**原因**：这不是 CPU 不支持虚拟化，而是 Windows 的**虚拟机平台**与 **Hyper-V** 功能未启用。
+
+先确认 CPU 层面是否就绪（管理员 PowerShell）：
+
+```powershell
+Get-CimInstance Win32_Processor |
+  Select-Object Name, VirtualizationFirmwareEnabled, VMMonitorModeExtensions
+```
+
+若两项均为 `True`，说明 CPU 没问题，只需启用 Windows 功能：
+
+```powershell
+# 管理员 PowerShell 执行
+dism /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+dism /online /enable-feature /featurename:Microsoft-Hyper-V-All /all /norestart
+```
+
+检查功能状态（`InstallState` 为 `2` 表示已禁用）：
+
+```powershell
+Get-CimInstance Win32_OptionalFeature |
+  Where-Object { $_.Name -match 'Hyper-V-All|VirtualMachinePlatform' } |
+  Select-Object Name, InstallState
+```
+
+**然后必须重启电脑** —— 内核级功能不重启不生效。
+重启后再确认 BIOS 中 `SVM Mode`（AMD）或 `Intel VT-x` 已开启。
+
+### 替代方案：不用 Docker
+
+若无法启用虚拟化，可直接本地运行（无需 Docker）：
+
+```bash
+# macOS / Linux
+./start.sh
+
+# Windows
+start.bat
+```
+
+或手动启动：
+
+```bash
+pip install -r backend/requirements.txt
+cd frontend && npm install && npm run build && cd ..
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8899
+```
+
+> 本项目的所有自动化验证（冒烟测试 50 项、验收核验 49 项等）
+> 都是在**不使用 Docker** 的情况下通过本地运行完成的，
+> 因此即使 Docker 不可用，平台功能依然完整可用。
+
 ---
 
 ## 🚀 发布到 GitHub
@@ -643,7 +751,7 @@ gh auth login
 # 1. 初始化仓库
 git init
 git add .
-git commit -m "feat: ATF Lab 安全教学靶场 v2.0.0
+git commit -m "feat: ATF Lab 安全教学靶场 v2.0.0-rc1
 
 - 前后端分离架构：FastAPI 后端 + React SPA 前端
 - 37 个关卡：Web安全15 / 密码学6 / 取证5 / 网络渗透7 / 逆向3 / 压轴1
