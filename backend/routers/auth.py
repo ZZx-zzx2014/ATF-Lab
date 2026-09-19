@@ -54,6 +54,7 @@ class RecoverIn(BaseModel):
 
 
 def _public_user(row) -> dict:
+    keys = row.keys() if hasattr(row, "keys") else []
     return {
         "id": row["id"],
         "username": row["username"],
@@ -63,6 +64,8 @@ def _public_user(row) -> dict:
         # 前端据此显示"请修改初始密码"的提醒横幅
         "must_change_password": bool(row["must_change_password"]),
         "password_changed_at": row["password_changed_at"],
+        # 体验账号标记（预置全解锁，仅供试玩）
+        "is_demo": bool(row["is_demo"]) if "is_demo" in keys else False,
     }
 
 

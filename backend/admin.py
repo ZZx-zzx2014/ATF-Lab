@@ -14,6 +14,8 @@ ATF Lab - 管理员命令行工具
     python -m backend.admin show-recovery --user admin
     python -m backend.admin unlock --user admin
     python -m backend.admin audit --limit 50
+    python -m backend.admin create-demo          # 创建全解锁体验账号
+    python -m backend.admin create-demo --reset  # 重置体验账号
 
 设计原则：
     1. 必须能访问服务器（物理/SSH），这是天然的权限边界
@@ -25,7 +27,7 @@ import argparse
 import sys
 import time
 
-from .database import init_db, query, query_one, execute, audit
+from .database import init_db, query, query_one, execute, audit, tx
 from .security import (
     hash_password, generate_password, generate_recovery_code,
     hash_recovery_code, password_strength_ok, LOCKOUT_SECONDS,
@@ -168,6 +170,100 @@ def cmd_audit(args):
     return 0
 
 
+def cmd_create_demo(args):
+    """
+    创建「全解锁体验账号」。
+
+    用途：给试玩者一个可以直接体验全部 37 关的账号，
+         无需自己逐关通关。
+
+    设计取舍：
+      - 角色为普通 user，**不给管理员权限**（避免试玩账号能看别人的数据）
+      - 真实写入 37 条通关记录，因此能查看所有 writeup
+      - 标记 is_demo=1，排行榜与个人主页会显示「体验账号」标识，
+        避免被误认为真实玩家的成绩
+      - 密码随机生成，不写死在代码里；也可用 --password 指定
+    """
+    from .challenges import load_all, registry
+
+    load_all()
+    levels = registry.all()
+    username = args.user or "demo"
+
+    existing = query_one("SELECT id, is_demo FROM users WHERE username = ?",
+                         (username,))
+    if existing and not args.reset:
+        print("✗ 用户 [%s] 已存在。若要重置，请加 --reset" % username,
+              file=sys.stderr)
+        return 1
+
+    # 密码
+    if args.password:
+        pw = args.password
+        ok, msg = password_strength_ok(pw)
+        if not ok:
+            print("✗ 密码强度不足: %s" % msg, file=sys.stderr)
+            return 1
+        generated = False
+    else:
+        pw = generate_password()
+        generated = True
+
+    recovery = generate_recovery_code()
+    now = time.time()
+
+    if existing:
+        uid = existing["id"]
+        execute(
+            "UPDATE users SET password_hash = ?, role = 'user', is_demo = 1, "
+            "       recovery_code_hash = ?, must_change_password = 0, "
+            "       password_changed_at = ?, failed_login_count = 0, "
+            "       locked_until = NULL "
+            "WHERE id = ?",
+            (hash_password(pw), hash_recovery_code(recovery), now, uid))
+        # 清空旧通关记录，重新写入，保证分数与当前题库一致
+        execute("DELETE FROM solves WHERE user_id = ?", (uid,))
+        execute("DELETE FROM hint_unlocks WHERE user_id = ?", (uid,))
+        action = "demo_reset"
+    else:
+        uid = execute(
+            "INSERT INTO users (username, email, password_hash, role, "
+            "created_at, must_change_password, recovery_code_hash, is_demo) "
+            "VALUES (?, NULL, ?, 'user', ?, 0, ?, 1)",
+            (username, hash_password(pw), now, hash_recovery_code(recovery)))
+        action = "demo_create"
+
+    # 写入全部关卡的通关记录
+    total_points = 0
+    with tx() as conn:
+        for lv in levels:
+            conn.execute(
+                "INSERT INTO solves (user_id, level_id, points, solved_at) "
+                "VALUES (?, ?, ?, ?)",
+                (uid, lv.id, lv.points, now))
+            total_points += lv.points
+
+    audit(uid, action, "levels=%d points=%d" % (len(levels), total_points))
+
+    print()
+    print("=" * 62)
+    print("  已创建「全解锁体验账号」")
+    print("=" * 62)
+    print("  用户名   : %s" % username)
+    print("  密码     : %s%s" % (pw, "   （随机生成）" if generated else ""))
+    print("  恢复码   : %s" % recovery)
+    print("  角色     : user（普通用户，无管理权限）")
+    print("  已解锁   : 全部 %d 关，共 %d 分" % (len(levels), total_points))
+    print()
+    print("  说明：")
+    print("   · 该账号会在排行榜显示「体验账号」标识，避免与真实成绩混淆")
+    print("   · 拥有全部关卡的 writeup 与提示，可直接体验压轴关")
+    print("   · 不能访问管理后台")
+    print("=" * 62)
+    print()
+    return 0
+
+
 def cmd_init(args):
     """显式初始化数据库（若尚无管理员会打印初始凭据）。"""
     init_db()
@@ -207,6 +303,15 @@ def main(argv=None):
     p = sub.add_parser("audit", help="查看审计日志")
     p.add_argument("--limit", type=int, default=50, help="显示条数")
     p.set_defaults(func=cmd_audit)
+
+    p = sub.add_parser(
+        "create-demo",
+        help="创建全解锁体验账号（预置 37 关通关记录，仅供试玩）")
+    p.add_argument("--user", default="demo", help="用户名，默认 demo")
+    p.add_argument("--password", help="指定密码；不填则随机生成")
+    p.add_argument("--reset", action="store_true",
+                   help="若账号已存在则重置（清空并重写通关记录）")
+    p.set_defaults(func=cmd_create_demo)
 
     args = parser.parse_args(argv)
     init_db()

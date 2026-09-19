@@ -84,6 +84,11 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 *.log
+# 凭据类文件：绝对不能提交
+demo_password.txt
+admin_password.txt
+*_password.txt
+credentials*.txt
 smoke_result.txt
 netlab_result.txt
 safety_audit_result.txt

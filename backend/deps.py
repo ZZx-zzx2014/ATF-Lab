@@ -24,7 +24,7 @@ def _user_from_token(authorization: Optional[str]):
         return None
     row = query_one(
         "SELECT id, username, email, role, created_at, last_login_at, "
-        "       must_change_password, password_changed_at "
+        "       must_change_password, password_changed_at, is_demo "
         "FROM users WHERE id = ?",
         (int(payload["sub"]),),
     )

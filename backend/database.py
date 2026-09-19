@@ -37,7 +37,9 @@ CREATE TABLE IF NOT EXISTS users (
     recovery_code_used_at REAL,
     -- 连续登录失败计数与锁定时间（防爆破）
     failed_login_count INTEGER NOT NULL DEFAULT 0,
-    locked_until       REAL
+    locked_until       REAL,
+    -- 体验账号标记：预置全解锁、仅供试玩，排行榜与主页会显示醒目标识
+    is_demo            INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS login_attempts (
@@ -206,6 +208,7 @@ def _migrate() -> None:
             ("recovery_code_used_at", "REAL"),
             ("failed_login_count", "INTEGER NOT NULL DEFAULT 0"),
             ("locked_until", "REAL"),
+            ("is_demo", "INTEGER NOT NULL DEFAULT 0"),
         ],
     }
     for table, cols in wanted.items():

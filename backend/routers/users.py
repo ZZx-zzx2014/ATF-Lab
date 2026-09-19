@@ -75,6 +75,8 @@ def _user_summary(row) -> dict:
         "username": row["username"],
         "role": row["role"],
         "created_at": row["created_at"],
+        # 体验账号标记：预置全解锁、仅供试玩，前端据此显示醒目标识
+        "is_demo": bool(row["is_demo"]) if "is_demo" in row.keys() else False,
         "solved_count": len(solved),
         "total_count": len(st["all_ids"]),
         "points": total_points,
@@ -87,7 +89,7 @@ def _user_summary(row) -> dict:
 def leaderboard(limit: int = Query(default=50, ge=1, le=200),
                 user=Depends(current_user_optional)):
     rows = query(
-        "SELECT u.id, u.username, u.role, u.created_at, "
+        "SELECT u.id, u.username, u.role, u.created_at, u.is_demo, "
         "       COUNT(s.id) AS solved_count, COALESCE(SUM(s.points), 0) AS points, "
         "       MIN(s.solved_at) AS first_solve_at "
         "FROM users u LEFT JOIN solves s ON s.user_id = u.id "
@@ -101,6 +103,7 @@ def leaderboard(limit: int = Query(default=50, ge=1, le=200),
             "user_id": r["id"],
             "username": r["username"],
             "role": r["role"],
+            "is_demo": bool(r["is_demo"]),
             "solved_count": r["solved_count"],
             "points": r["points"],
         })
@@ -117,7 +120,8 @@ def leaderboard(limit: int = Query(default=50, ge=1, le=200),
 @router.get("/users/{username}", summary="查看某个用户的公开主页")
 def user_profile(username: str):
     row = query_one(
-        "SELECT id, username, role, created_at FROM users WHERE username = ?",
+        "SELECT id, username, role, created_at, is_demo "
+        "FROM users WHERE username = ?",
         (username,),
     )
     if row is None:
@@ -140,7 +144,8 @@ def user_profile(username: str):
 @router.get("/me/profile", summary="我的个人主页（含徽章）")
 def my_profile(user: dict = Depends(current_user)):
     row = query_one(
-        "SELECT id, username, role, created_at FROM users WHERE id = ?", (user["id"],)
+        "SELECT id, username, role, created_at, is_demo "
+        "FROM users WHERE id = ?", (user["id"],)
     )
     solved = _solved_ids(user["id"])
     st = _stats()

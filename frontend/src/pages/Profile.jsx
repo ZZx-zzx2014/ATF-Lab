@@ -61,6 +61,11 @@ export default function Profile() {
               <div>
                 <h1 style={{ margin: '0 0 6px', fontSize: 24 }}>
                   {data.username}
+                  {data.is_demo && (
+                    <span className="tag tag-warn" style={{ marginLeft: 10 }}>
+                      🎮 体验账号
+                    </span>
+                  )}
                   {data.role === 'admin' && (
                     <span className="tag tag-purple" style={{ marginLeft: 10 }}>
                       管理员
@@ -88,6 +93,14 @@ export default function Profile() {
             <div className="progress-bar mt-16">
               <div style={{ width: `${data.progress_percent}%` }} />
             </div>
+
+            {data.is_demo && (
+              <div className="notice notice-warn" style={{ marginTop: 16 }}>
+                🎮 <b>这是一个体验账号。</b>
+                全部 {data.total_count} 关已预先解锁，方便你直接查看各关内容与原理讲解。
+                它的成绩不代表真实水平，因此在排行榜上带有「体验账号」标识。
+              </div>
+            )}
           </div>
 
           <div className="card" style={{ marginBottom: 20 }}>

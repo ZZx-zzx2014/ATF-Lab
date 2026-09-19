@@ -83,6 +83,15 @@ export default function Leaderboard() {
                     </td>
                     <td>
                       <Link to={`/u/${e.username}`}>{e.username}</Link>
+                      {e.is_demo && (
+                        <span
+                          className="tag tag-warn"
+                          style={{ marginLeft: 8 }}
+                          title="预置全解锁的试玩账号，非真实成绩"
+                        >
+                          🎮 体验账号
+                        </span>
+                      )}
                       {e.role === 'admin' && (
                         <span className="tag tag-purple" style={{ marginLeft: 8 }}>
                           管理员
