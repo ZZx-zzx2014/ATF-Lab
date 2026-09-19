@@ -86,6 +86,9 @@ htmlcov/
 *.log
 smoke_result.txt
 netlab_result.txt
+safety_audit_result.txt
+ui_result.txt
+*.result
 .lint_result.txt
 .tmp_*.txt
 .probe/
