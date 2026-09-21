@@ -14,7 +14,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: atf-lab:2.0.0-rc1
+    image: atf-lab:2.0.0
     container_name: atf-lab
     restart: unless-stopped
 

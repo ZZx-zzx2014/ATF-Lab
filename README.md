@@ -34,58 +34,62 @@
 
 ## 📌 版本状态
 
-**当前版本：`v2.0.0-rc1`（候选版 / Release Candidate）**
+**当前版本：`v2.0.0`（正式版）**
 
-功能已完整实现并通过自动化验证，但**尚未在所有部署路径上实测**，
-因此暂标为候选版而非正式版。
+功能完整，两条主要部署路径已实测通过，全部自动化测试通过。
 
 ### 已验证 ✅
 
 | 验证项 | 结果 |
 |---|---|
-| 源码编译自检 | 25 / 25 文件通过 |
+| 源码编译自检 | 26 / 26 文件通过 |
 | 端到端冒烟测试 | 50 / 50 通过 |
-| 安全边界审计（AST 级） | 全部通过 |
-| 验收标准核验 | 49 / 49 通过 |
+| 安全边界审计（AST 级） | 全部通过（41 个文件） |
+| 账号安全测试 | 32 / 32 通过 |
+| 验收标准核验 | 61 / 61 通过 |
+| 解码链路验证 | 全部通过（6 关） |
+| 体验账号测试 | 18 / 18 通过 |
 | 仿真网络服务 | 6 / 6 安全边界检查通过 |
 | 前端 UI（Playwright） | 21 / 21 通过 |
+| 体验账号 UI | 11 / 11 通过 |
 | 全部 37 关 flag 校验 | 通过 |
 
-验证环境：Windows 11 + Python 3.14.4 + Node 24.15.0
+验证环境：Windows 11 + Python 3.14.4 + Node 24.15.0 + Docker Desktop 29.4.3
 
-### 尚未实测 ⚠️
+### 部署路径实测状态
 
-以下项目**代码已写好但未在真实环境执行过**，是 rc1 与正式版之间的差距：
-
-| 项目 | 状态 | 说明 |
-|---|---|---|
-| `start.sh` (macOS/Linux) | ⚠️ 未实测 | 逻辑已实现，未在对应平台运行 |
-| `start.command` (macOS) | ⚠️ 未实测 | 同上 |
-| `start.bat` (Windows) | ⚠️ 未实测 | 逻辑已实现，未完整跑通 |
-| Linux / macOS 运行 | ⚠️ 未实测 | 仅在 Windows 上验证过 |
-| Python 3.9 – 3.12 | ⚠️ 未实测 | 仅在 Python 3.14 上验证过 |
-
-### 已实测的部署路径 ✅
-
-| 路径 | 结果 |
+| 路径 | 状态 |
 |---|---|
-| `docker compose up --build` | ✅ **已实测通过**（Windows 11 + Docker Desktop 29.4.3 + WSL2） |
-| 容器健康检查 | ✅ `Up (healthy)` |
-| 容器内 37 关装载 | ✅ 通过 |
-| 容器内全部 API | ✅ 冒烟 50/50、验收 49/49 |
-| 容器内 4 个仿真服务 | ✅ 正常响应 |
+| `docker compose up --build` | ✅ **已实测通过** |
+| `start.bat`（Windows） | ✅ **已实测通过**（含全流程启动与服务验证） |
+| `start.sh`（macOS / Linux） | ⚠️ **未实测** —— 见下方说明 |
+| `start.command`（macOS） | ⚠️ **未实测** —— 见下方说明 |
 
-> ⚠️ 但 Docker 模式下，宿主经端口映射访问**仿真服务的裸 TCP 端口**存在
-> Docker Desktop 平台限制（连接被重置）。需要实操网络渗透关卡时请用本地运行方式。
-> 详见 [已知限制](#已知限制宿主端口冲突与仿真服务转发)。
+> [!IMPORTANT]
+> **关于 `start.sh` / `start.command` 的如实说明**
+>
+> 这两个脚本**代码已完成**（115 / 34 行标准 shell 脚本，
+> 行尾符经检查为 LF，符合 Unix 要求），但**开发者没有 macOS / Linux
+> 环境，因此从未实际执行过**。
+>
+> 如果你在 macOS 或 Linux 上运行遇到问题，可以使用**已验证的方式**替代：
+>
+> ```bash
+> python3 -m venv .venv
+> source .venv/bin/activate
+> pip install -r backend/requirements.txt
+> cd frontend && npm install && npm run build && cd ..
+> python -m uvicorn backend.main:app --host 127.0.0.1 --port 8899
+> ```
+>
+> 或者直接用 Docker（`docker compose up --build`，已实测通过）。
 
-### 升级为正式版的条件
+### 其他未覆盖范围
 
-以下任一路径走通，即可将版本号提升为 `v2.0.0` 并打正式 tag：
-
-1. ~~在启用虚拟化的机器上跑通 `docker compose up --build`~~ ✅ **已完成**
-2. 在 macOS / Linux 上跑通 `./start.sh`，或
-3. 在 Windows 上跑通 `start.bat`
+| 项目 | 状态 |
+|---|---|
+| Python 3.9 – 3.12 | ⚠️ 仅在 Python 3.14 上验证过 |
+| Docker 下宿主访问仿真服务裸 TCP 端口 | ⚠️ 受 Docker Desktop 平台限制，见下文 |
 
 > 💡 **已知环境问题**：若 `docker compose up` 报
 > 「Virtualization support not detected」，说明 Windows 的
@@ -939,7 +943,7 @@ gh auth login
 # 1. 初始化仓库
 git init
 git add .
-git commit -m "feat: ATF Lab 安全教学靶场 v2.0.0-rc1
+git commit -m "feat: ATF Lab 安全教学靶场 v2.0.0
 
 - 前后端分离架构：FastAPI 后端 + React SPA 前端
 - 37 个关卡：Web安全15 / 密码学6 / 取证5 / 网络渗透7 / 逆向3 / 压轴1

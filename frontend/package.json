@@ -1,7 +1,7 @@
 {
   "name": "atf-lab-frontend",
   "private": true,
-  "version": "2.0.0-rc1",
+  "version": "2.0.0",
   "type": "module",
   "description": "ATF Lab 前端 SPA —— 仅供教学演示的安全靶场界面",
   "scripts": {

@@ -27,7 +27,7 @@ def _env_int(key: str, default: int) -> int:
 class Settings:
     # ---- 服务 ----
     APP_NAME: str = "ATF Lab"
-    APP_VERSION: str = "2.0.0-rc1"
+    APP_VERSION: str = "2.0.0"
     HOST: str = _env("ATF_HOST", "0.0.0.0")
     PORT: int = _env_int("ATF_PORT", 8899)
     DEBUG: bool = _env("ATF_DEBUG", "0").lower() in ("1", "true", "yes")
